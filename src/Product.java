@@ -1,6 +1,6 @@
 import javafx.scene.image.Image;
 
-public class Product implements Comparable<Product> {
+public class Product {
     private String title, console, description;
     private double price;
     private int rating, units;
@@ -14,6 +14,16 @@ public class Product implements Comparable<Product> {
         setRating(rating);
         setUnits(units);
         setImage(image);
+    }
+
+    //Constructor for creating a new Video Game without needing the image.
+    public Product(String title, String console, String description, double price, int rating, int units) {
+        setTitle(title);
+        setConsole(console);
+        setDescription(description);
+        setPrice(price);
+        setRating(rating);
+        setUnits(units);
     }
 
     public String getTitle() {
@@ -33,9 +43,6 @@ public class Product implements Comparable<Product> {
     }
 
     public void setConsole(String console) {
-        //String[] vaildConsoles = ("Xbox", "PlayStation", "PC", "GameCube")
-        // for (vaildConsoles each vaildConsoles)
-
         if (console.isEmpty()) {
             throw new IllegalArgumentException("You Did Not Enter A Console.");
         } else {
@@ -73,7 +80,7 @@ public class Product implements Comparable<Product> {
 
     public void setUnits(int units) {
         if (units < 0) {
-            throw new IllegalArgumentException("Units Cannot Be Lower Than 1");
+            throw new IllegalArgumentException("Sorry no units remaining to sell");
         } else {
             this.units = units;
         }
@@ -97,14 +104,6 @@ public class Product implements Comparable<Product> {
         } else {
             this.description = description;
         }
-    }
-
-    @Override
-    public int compareTo(Product product) {
-        if (this.getTitle().compareToIgnoreCase(product.getTitle()) == 0)
-            return this.getConsole().compareToIgnoreCase(product.getConsole());
-        else
-            return getTitle().compareToIgnoreCase(product.getTitle());
     }
 
     @Override

@@ -2,21 +2,29 @@ import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
+import javafx.scene.Node;
+import javafx.scene.Parent;
+import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.stage.Stage;
+
+import java.io.IOException;
 import java.net.URL;
 import java.util.*;
+import java.util.stream.Collectors;
 
 
 public class InventoryController implements Initializable {
 
     Inventory inventoryOBJ = new Inventory();
-
-    /*
-    Initializing Variables for SceneBuilder
-    */
+    AddVideoGameController addedVideoGames = new AddVideoGameController();
+    /**
+     * Initializing Variables for SceneBuilder
+     */
     @FXML
     private ComboBox<String> consoleComboBox;
     @FXML
@@ -37,51 +45,32 @@ public class InventoryController implements Initializable {
     private RadioButton TitleAToZRadioButton;
     @FXML
     private RadioButton TitleZToARadioButton;
+    @FXML
+    private Button sellUnitButton;
 
     private ToggleGroup SelectedRadioButtonToggleGroup;
 
-    /*
-    This function is an event attached to each radio button
-    Changing the label above to tell the user what
-    button is currently selected
+    /**
+     * Initializes the controller class.
      */
-    public void radioButtonChanged() {
-        if (this.SelectedRadioButtonToggleGroup.getSelectedToggle().equals(this.PriceHighToLowRadioButton))
-            sortingLabel.setText("Sorting From Price High To Low");
-        
-
-        if (this.SelectedRadioButtonToggleGroup.getSelectedToggle().equals(this.PriceLowToHighRadioButton))
-            sortingLabel.setText("Sorting From Price Low To High");
-
-        if (this.SelectedRadioButtonToggleGroup.getSelectedToggle().equals(this.TitleAToZRadioButton))
-            sortingLabel.setText("Sorting By Title A To Z");
-
-        if (this.SelectedRadioButtonToggleGroup.getSelectedToggle().equals(this.TitleZToARadioButton))
-            sortingLabel.setText("Sorting By Title Z To A");
-    }
-
-
-    /*
-    Initializes the controller class.
-    */
     @Override
     public void initialize(URL url, ResourceBundle rb) {
         // TODO
-        sortTitleAToZ(inventoryOBJ.myProducts());
-
         //Prompt Text on Combo Box
         consoleComboBox.setPromptText("Select a Console...");
 
         //Start with all items in ListView
         listView.getItems().addAll(inventoryOBJ.myProducts());
+        //listView.getItems().addAll(addedVideoGames.myNewlyAddedProducts());
 
         //Select the first product in the list
         listView.getSelectionModel().select(0);
         imageView.setImage(new Image("Pictures/CounterStrike.jpg"));
-        //Add the Key to ComboBox
+
+        //Add the Key/Consoles to ComboBox
         consoleComboBox.getItems().addAll(inventoryOBJ.getConsoleNames());
 
-        //When new category is selected run the function updateListView()
+        //When new category/console is selected run the function updateListView()
         consoleComboBox.getSelectionModel().selectedItemProperty().addListener(
                 (observable, oldValue, newValue) -> updateListView());
 
@@ -92,120 +81,170 @@ public class InventoryController implements Initializable {
         this.TitleAToZRadioButton.setToggleGroup(SelectedRadioButtonToggleGroup);
         this.TitleZToARadioButton.setToggleGroup(SelectedRadioButtonToggleGroup);
 
+        //Make it so Radio button A to Z is selected at the start sorting the list view.
         TitleAToZRadioButton.setSelected(true);
+        radioButtonChanged();
 
-        //This runs every time a new product is selected.
+        /**
+         This will on press call my function sellUnits
+         from my inventory class passing the selected
+         model get the current Units and subtract 1 from it
+         */
+        sellUnitButton.setOnAction(event -> {
+            inventoryOBJ.sellProduct((Product) listView.getSelectionModel().getSelectedItem());
+            // Setting the category label after selling 1 unit
+            CategoryValueLabel.setText(Double.toString(inventoryOBJ.getCategoryValue(inventoryOBJ.getSelectedKey(consoleComboBox.getSelectionModel().getSelectedItem()))));
+            //If the combo box has something selected than it gets everything in the listview and sends it to getInventoryValue
+            InventoryValueLabel.setText(Double.toString(inventoryOBJ.getInventoryValue(listView.getSelectionModel().getSelectedItems())));
+            //Update List view for sold unit
+            listView.refresh();
+        });
+
+        /**This runs every time a new product is selected.
+         It get the image attached to the selected product
+         and changed the Inventory label to the selected
+         product
+         */
         listView.getSelectionModel().selectedItemProperty().addListener(new ChangeListener<Product>() {
             @Override
             public void changed(ObservableValue<? extends Product> observable, Product oldValue, Product SelectedValue) {
-                //Change images based on product selected
-                imageView.setImage(SelectedValue.getImage());
-                System.out.println(SelectedValue);
-                double productAmount = inventoryOBJ.getInventoryValue(listView.getSelectionModel().getSelectedItems());
-                InventoryValueLabel.setText(Double.toString(productAmount));
+                //Updates the image whenever there is a selected product (always something selected)
+                if (SelectedValue != null) {
+                    imageView.setImage(SelectedValue.getImage());
+                }
+                //Takes product selected and send it to getInventoryValue returning the label value
+                InventoryValueLabel.setText(Double.toString(inventoryOBJ.getInventoryValue(listView.getSelectionModel().getSelectedItems())));
             }
         });
     }
 
-    /*
-    On the first selection to the ComboBox it doesn't update
-    but the second selection it does unsure why
-    */
+    /**
+     * This function is an event attached to each radio button
+     * Changing the label above to tell the user what
+     * button is currently selected and finding the current selected
+     * category and sorting all items inside of it
+     */
+    public void radioButtonChanged() {
+
+        if (this.SelectedRadioButtonToggleGroup.getSelectedToggle().equals(this.TitleAToZRadioButton)) {
+            sortingLabel.setText("Sorting By Title A To Z");
+            {
+                //removes all items in the Listview before updating
+                listView.getItems().clear();
+
+                if (consoleComboBox.getSelectionModel().getSelectedItem() != null) {
+                    listView.getItems().addAll(sortTitleAToZ(inventoryOBJ.getSelectedKey(consoleComboBox.getSelectionModel().getSelectedItem())));
+                } else {
+                    listView.getItems().addAll(sortTitleAToZ(inventoryOBJ.getListProducts()));
+                }
+            }
+        }
+
+        if (this.SelectedRadioButtonToggleGroup.getSelectedToggle().equals(this.TitleZToARadioButton)) {
+            sortingLabel.setText("Sorting By Title Z To A");
+            {
+                listView.getItems().clear();
+
+                if (consoleComboBox.getSelectionModel().getSelectedItem() != null) {
+                    listView.getItems().addAll(sortTitleZToA(inventoryOBJ.getSelectedKey(consoleComboBox.getSelectionModel().getSelectedItem())));
+                } else {
+                    listView.getItems().addAll(sortTitleZToA(inventoryOBJ.getListProducts()));
+                }
+            }
+        }
+
+        if (this.SelectedRadioButtonToggleGroup.getSelectedToggle().equals(this.PriceLowToHighRadioButton)) {
+            sortingLabel.setText("Sorting By Title Z To A");
+            {
+                listView.getItems().clear();
+
+                if (consoleComboBox.getSelectionModel().getSelectedItem() != null) {
+                    listView.getItems().addAll(sortPriceLowToHigh(inventoryOBJ.getSelectedKey(consoleComboBox.getSelectionModel().getSelectedItem())));
+                } else {
+                    listView.getItems().addAll(sortPriceLowToHigh(inventoryOBJ.getListProducts()));
+                }
+            }
+        }
+
+        if (this.SelectedRadioButtonToggleGroup.getSelectedToggle().equals(this.PriceHighToLowRadioButton)) {
+            sortingLabel.setText("Sorting By Title Z To A");
+            {
+                listView.getItems().clear();
+
+                if (consoleComboBox.getSelectionModel().getSelectedItem() != null) {
+                    listView.getItems().addAll(sortPriceHighToLow(inventoryOBJ.getSelectedKey(consoleComboBox.getSelectionModel().getSelectedItem())));
+                } else {
+                    listView.getItems().addAll(sortPriceHighToLow(inventoryOBJ.getListProducts()));
+                }
+            }
+        }
+        //After sorting the list select first Item.
+        listView.getSelectionModel().select(0);
+    }
+
+
+    /**
+     * When Combo box is selected this method run
+     * checking for the selected Radio button
+     * Selecting the first product in the view
+     * and set the category total value label
+     */
     public void updateListView() {
         consoleComboBox.setOnAction((event) -> {
             consoleComboBox.getSelectionModel().getSelectedItem();
-
-            if (consoleComboBox.getSelectionModel().getSelectedItem().equals("Xbox")) {
-                //Clears Previous Items in ListView
-                listView.getItems().clear();
-                //Adds Items to ListView with specific key
-                listView.getItems().addAll(inventoryOBJ.getSelectedKey("Xbox"));
-                //Sets Image related to selected Category
-                //imageView.setImage(new Image("Pictures/Xbox.jpg"));
-                //Select the first product in the list
-                listView.getSelectionModel().select(0);
-                //setting the label to add the category inventory together
-                double categoryAmount = inventoryOBJ.getCategoryValue(listView.getItems());
-                CategoryValueLabel.setText(Double.toString(categoryAmount));
-            } else if (consoleComboBox.getSelectionModel().getSelectedItem().equals("PlayStation")) {
-                //Clears Previous Items in ListView
-                listView.getItems().clear();
-                //Adds Items to ListView with specific key
-                listView.getItems().addAll(inventoryOBJ.getSelectedKey("PlayStation"));
-                //imageView.setImage(new Image("Pictures/PlayStation.jpg"));
-                //Select the first product in the list
-                listView.getSelectionModel().select(0);
-                //setting the label to add the category inventory together
-                double categoryAmount = inventoryOBJ.getCategoryValue(listView.getItems());
-                CategoryValueLabel.setText(Double.toString(categoryAmount));
-            } else if (consoleComboBox.getSelectionModel().getSelectedItem().equals("PC")) {
-                //Clears Previous Items in ListView
-                listView.getItems().clear();
-                //Adds Items to ListView with specific key
-                listView.getItems().addAll(inventoryOBJ.getSelectedKey("PC"));
-                //imageView.setImage(new Image("Pictures/PC.jpg"));
-                //Select the first product in the list
-                listView.getSelectionModel().select(0);
-                //setting the label to add the category inventory together
-                double categoryAmount = inventoryOBJ.getCategoryValue(listView.getItems());
-                CategoryValueLabel.setText(Double.toString(categoryAmount));
-            } else if (consoleComboBox.getSelectionModel().getSelectedItem().equals("GameCube")) {
-                //Clears Previous Items in ListView
-                listView.getItems().clear();
-                //Adds Items to ListView with specific key
-                listView.getItems().addAll(inventoryOBJ.getSelectedKey("GameCube"));
-                //imageView.setImage(new Image("Pictures/GameCube.jpg"));
-                //Select the first product in the list
-                listView.getSelectionModel().select(0);
-                //setting the label to add the category inventory together
-                double categoryAmount = inventoryOBJ.getCategoryValue(listView.getItems());
-                CategoryValueLabel.setText(Double.toString(categoryAmount));
-            } else {
-                //Clears Previous Items in ListView
-                listView.getItems().clear();
-                //Set Prompt Text
-                consoleComboBox.setPromptText("Select a Console...");
-                //Add the Key to ComboBox
-                consoleComboBox.getItems().addAll(inventoryOBJ.treeMap.keySet());
-            }
+            // listView.getItems().clear();
+            radioButtonChanged();
+            listView.getSelectionModel().select(0);
+            //InventoryValueLabel.setText(Double.toString(inventoryOBJ.getInventoryValue(inventoryOBJ.getSelectedKey(consoleComboBox.getSelectionModel().getSelectedItem().toString()))));
+            CategoryValueLabel.setText(Double.toString(inventoryOBJ.getCategoryValue(inventoryOBJ.getSelectedKey(consoleComboBox.getSelectionModel().getSelectedItem()))));
         });
     }
 
-
+    //Using .Stream to sort List of products in alphabetical order
     public List<Product> sortTitleAToZ(List<Product> products) {
-        products.stream()
-                .sorted((i1, i2) -> i1.compareTo(i2))
-                .forEach(product -> System.out.println(product));
-        return products;
+        return products.stream()
+                .sorted((a, b) -> a.getTitle().compareToIgnoreCase(b.getTitle()))
+                .collect(Collectors.toList());
     }
 
+    //Using .Stream to sort list from Z to A
     public List<Product> sortTitleZToA(List<Product> products) {
-        products.stream()
-                .sorted((i1, i2) -> i2.compareTo(i1))
-                .forEach(System.out::println);
+        return products.stream()
+                .sorted((a, b) -> b.getTitle().compareToIgnoreCase(a.getTitle()))
+                .collect(Collectors.toList());
+    }
+
+    //Not using Streams but Collection to sort Product by price from low to high
+    public List<Product> sortPriceLowToHigh(List<Product> products) {
+        Collections.sort(products, (a, b) -> {
+            if (a.getPrice() > b.getPrice())
+                return 1;
+            else
+                return -1;
+        });
         return products;
     }
 
-    public List<Product> sortPriceLowTToHigh(List<Product> products) {
-        products.stream().sorted(Comparator.comparing(Product::getPrice))
-                .forEach(product -> System.out.println(product));
-        return products;
-    }
-
+    //Not using Streams but Collection to sort Product by price from low to high
     public List<Product> sortPriceHighToLow(List<Product> products) {
-        products.stream().sorted(Comparator.comparing(Product::getPrice).reversed())
-                .forEach(product -> System.out.println(product));
+        Collections.sort(products, (a, b) -> {
+            if (b.getPrice() > a.getPrice())
+                return 1;
+            else
+                return -1;
+        });
         return products;
     }
 
-    /*
-    This will on press call my function sellUnits
-    from my inventory class passing the selected
-    model get the current Units and subtract 1 from it
-    */
-    public void sellUnitButtonPushed(ActionEvent event) {
-        //inventoryOBJ.sellProduct(listView.getSelectionModel().getSelectedItems());
-        //inventoryOBJ.sellProduct(listView.getSelectionModel().getSelectedItem().toString());
-        System.out.println("Button has been pressed");
+    //On button press change scene to create Video game view
+    public void addVideoGameOnButtonPress(ActionEvent event) throws IOException {
+        Parent tableViewParent = FXMLLoader.load(getClass().getResource("AddVideoGameView.fxml"));
+        Scene tableViewScene = new Scene(tableViewParent);
+
+        //This line gets the Stage information
+        Stage window = (Stage) ((Node) event.getSource()).getScene().getWindow();
+
+        window.setScene(tableViewScene);
+        window.show();
     }
 }

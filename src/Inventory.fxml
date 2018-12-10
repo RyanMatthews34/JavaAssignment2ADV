@@ -15,7 +15,7 @@
 <?import javafx.scene.layout.RowConstraints?>
 <?import javafx.scene.text.Font?>
 
-<AnchorPane prefHeight="673.0" prefWidth="840.0" style="-fx-background-color: #7ebceaff;"
+<AnchorPane prefHeight="727.0" prefWidth="840.0" style="-fx-background-color: #7ebceaff;"
             xmlns="http://javafx.com/javafx/9.0.4" xmlns:fx="http://javafx.com/fxml/1"
             fx:controller="InventoryController">
     <stylesheets>
@@ -69,8 +69,8 @@
                     <children>
                         <ImageView fx:id="imageView" fitHeight="127.0" fitWidth="242.0" pickOnBounds="true"
                                    preserveRatio="true" GridPane.halignment="CENTER" GridPane.valignment="CENTER"/>
-                        <Button alignment="CENTER" contentDisplay="CENTER" mnemonicParsing="false"
-                                onAction="#sellUnitButtonPushed" prefHeight="73.0" prefWidth="205.0" text="Sell 1 Unit"
+                        <Button fx:id="sellUnitButton" alignment="CENTER" contentDisplay="CENTER"
+                                mnemonicParsing="false" prefHeight="73.0" prefWidth="205.0" text="Sell 1 Unit"
                                 GridPane.halignment="CENTER" GridPane.rowIndex="1" GridPane.valignment="CENTER"/>
                     </children>
                     <padding>
@@ -117,6 +117,11 @@
                         <Font size="30.0"/>
                     </font>
                 </Label>
+            </children>
+        </HBox>
+        <HBox alignment="CENTER" layoutX="11.0" layoutY="655.0" prefHeight="58.0" prefWidth="818.0">
+            <children>
+                <Button mnemonicParsing="false" onAction="#addVideoGameOnButtonPress" text="Add Video Game"/>
             </children>
         </HBox>
     </children>
